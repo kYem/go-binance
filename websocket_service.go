@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var (
@@ -171,6 +172,23 @@ type WsAllMarketsStatHandler func(event WsAllMarketsStatEvent)
 // WsAllMarketsStatServe serve websocket that push 24hr statistics for all market every second
 func WsAllMarketsStatServe(handler WsAllMarketsStatHandler) (chan struct{}, error) {
 	endpoint := fmt.Sprintf("%s/!ticker@arr", baseURL)
+	cfg := newWsConfig(endpoint)
+	wsHandler := func(message []byte) {
+		var event WsAllMarketsStatEvent
+		err := json.Unmarshal(message, &event)
+		if err != nil {
+			return
+		}
+		handler(event)
+	}
+	return wsServe(cfg, wsHandler)
+}
+
+// WsAllMarketsStatServe serve websocket that push 24hr statistics for all market every second
+func WsAllMarketsStatServeInterval(handler WsAllMarketsStatHandler, interval time.Duration) (chan struct{}, error) {
+	// Convert to milliseconds
+	ms := interval.Nanoseconds() / 1e6
+	endpoint := fmt.Sprintf("%s/!ticker@arr@%dms", baseURL, int(ms))
 	cfg := newWsConfig(endpoint)
 	wsHandler := func(message []byte) {
 		var event WsAllMarketsStatEvent
